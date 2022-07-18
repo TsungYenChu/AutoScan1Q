@@ -1,3 +1,7 @@
+from colorama import Fore, Back
+from flask import session
+from pyqum import get_db, close_db
+from json import dumps
 #---------------load package of load_data---------------
 from LoadData_lab import jobid_search_pyqum, pyqum_load_data
 #---------------load package of cavity search---------------
@@ -12,6 +16,8 @@ from numpy import median
 from PowerDepend import outlier_detect, cloc
 #---------------load package of flux dependent---------------
 from FluxDepend import flux_load_data, fit_sin
+#---------------save jobid list in pickle---------------
+from pickle import dump,load
 
 class Load_From_pyqum:
     def __init__(self, jobid):
@@ -23,6 +29,7 @@ class Load_From_pyqum:
         self.amp_data,self.jobid_check  = pyqum_load_data(self.pyqum_path)
         if self.jobid == self.jobid_check:
             print("JOBid ",self.jobid," checked")
+        return self.amp_data
             
 class CavitySearch:
     def __init__(self, dataframe):
@@ -84,6 +91,7 @@ class CavitySearch:
         pha_ans = [gru_ans_pha,db_ans_pha]
 
         self.answer = compa_gru_db(amp_ans,pha_ans)   # answer looks: {'0':[start,end],'1':[...],...}
+        return self.answer
 
     def give_answer_array(self,no):
         self.ans_array = {
@@ -206,6 +214,7 @@ class QubitFreq_Scan:
            status = 1 for 1 peak detected -> so far, a stronger xy-power again
            status = 2 for 2 peak detected'''
         return self.answer
+                                                                                         
     def give_result(self):
         farest = freq2idx(self.target_freq,self.freq)[:3]
         self.plot_items = {
@@ -215,46 +224,119 @@ class QubitFreq_Scan:
             'Substrate':self.sub
         }
       
+def char_fresp_new(sparam,freq,powa,flux,comment = "By bot"):
+    # Check user's current queue status:
+    if session['run_clearance']:
+        print(comment)
+        wday = int(-1)
+        sparam = sparam   #S-Parameter
+        ifb = "50"     #IF-Bandwidth (Hz)
+        freq = freq #Frequency (GHz)
+        powa = powa    #Power (dBm)
+        fluxbias = flux   #Flux-Bias (V/A)
+        comment = comment.replace("\"","") #comment
+        PERIMETER = {"dcsweepch":"1", "z-idle":{}, "sweep-config":{"sweeprate":0.0001,"pulsewidth":1001e-3,"current":0}} # DC=YOKO
+        CORDER = {'Flux-Bias':fluxbias, 'S-Parameter':sparam, 'IF-Bandwidth':ifb, 'Power':powa, 'Frequency':freq}
+        print(CORDER)
+        # Start Running:
+        TOKEN = 'TOKEN(%s)%s' %(session['user_name'],random())
+        Run_fresp[TOKEN] = F_Response(session['people'], corder=CORDER, comment=dumps(comment, separators=(',', ':')), tag='', dayindex=wday, perimeter=dumps(PERIMETER, separators=(',', ':')))
+        return Run_cwsweep[TOKEN].job_id
+    else: return show()
+def char_cwsweep_new(sparam,freq,powa,flux,comment = "By bot"):
+    # Check user's current queue status:
+    if session['run_clearance']:
+        print(comment)
+        wday = int(-1)
+        sparam = sparam   #S-Parameter
+        ifb = "50"     #IF-Bandwidth (Hz)
+        freq = freq #Frequency (GHz)
+        powa = powa    #Power (dBm)
+        fluxbias = flux   #Flux-Bias (V/A)
+        xyfreq = "OPT,"
+        xypowa = "OPT,"
+        comment = comment.replace("\"","")
+        PERIMETER = {"dcsweepch":"1", "z-idle":{}, 'sg-locked': {}, "sweep-config":{"sweeprate":0.0001,"pulsewidth":1001e-3,"current":0}} # DC=YOKO
+        CORDER = {'Flux-Bias':fluxbias, 'XY-Frequency':xyfreq, 'XY-Power':xypowa, 'S-Parameter':sparam, 'IF-Bandwidth':ifb, 'Frequency':freq, 'Power':powa}
+        print(CORDER)
+        # Start Running:
+        TOKEN = 'TOKEN(%s)%s' %(session['user_name'],random())
+        Run_cwsweep[TOKEN] = CW_Sweep(session['people'], corder=CORDER, comment=comment, tag='', dayindex=wday, perimeter=PERIMETER)
+
+        return Run_cwsweep[TOKEN].job_id
+    else: return show()
 class Quest_command:
-    def __init__(self):
-        pass
+    def __init__(self,sparam="S21,"):
+        self.sparam = sparam
+
+    def jobnote(JOBID, note):
+        '''Add NOTE to a JOB after analyzing the data'''
+        if g.user['measurement']:
+            try:
+                db = get_db()
+                db.execute('UPDATE job SET note = ? WHERE id = ?', (note,JOBID))
+                db.commit()
+                close_db()
+                print(Fore.GREEN + "User %s has successfully updated JOB#%s with NOTE: %s" %(g.user['username'],JOBID,note))
+            except:
+                print(Fore.RED + Back.WHITE + "INVALID JOBID")
+                raise
+        else: pass
     
-    def cavitysearch(self):
-
+    def cavitysearch(self,add_comment=""):
+        jobid = char_fresp_new(sparam=self.sparam,freq = "5 to 9 *3000",powa = "0",flux = "OPT,",comment = "By bot - step1 cavitysearch\n"+add_comment)
         return jobid
-    def powerdepend(self):
-
+    def powerdepend(self,select_freq,add_comment=""):
+        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = "-50 to 10 * 13",flux = "0",comment = "By bot - step2 power dependent\n"+add_comment)
         return jobid
-    def fluxdepend(self):
-
+    def fluxdepend(self,select_freq,select_powa,add_comment=""):
+        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = select_powa,flux = "-300e-6 to 300e-6 * 20",comment = "By bot - step3 flux dependent\n"+add_comment)
         return jobid
-    def qubitsearch(self):
-        
+    def qubitsearch(self,select_freq,select_flux,add_comment=""):
+        jobid = char_cwsweep_new(sparam=self.sparam,freq = select_freq,flux = select_flux,powa = "-10 to 10 *4 ",comment = "By bot - step4 qubit search\n"+add_comment)
         return jobid
 
 
 
 class AutoScan1Q:
-    def __init__(self,numCPW):
-        self.numCPW = int(numCPW)
+    def __init__(self,numCPW,sparam="S21,"):
         self.jobid_dict = {"CavitySearch":0,"PowerDepend":0,"FluxDepend":0,"QubitSearch":0}
+        self.sparam = sparam
+        try:
+            self.numCPW = int(numCPW)
+        except:
+            pass
+        
     def cavitysearch(self):
-        jobid = Quest_command.cavitysearch()
+        jobid = Quest_command(self.sparam).cavitysearch()
         self.jobid_dict["CavitySearch"] = jobid
-        dataframe,_ = Load_From_pyqum(jobid).load()
+        dataframe = Load_From_pyqum(jobid).load()
         self.cavity_list = CavitySearch(dataframe).do_analysis(numCPW)
-    def powerdepend(self):
-        jobid = Quest_command.powerdepend()
+        print(self.cavity_list)
+    def powerdepend(self,cavity_num):
+        jobid = Quest_command(self.sparam).powerdepend(select_freq=self.cavity_list[cavity_num],add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["PowerDepend"] = jobid
-        dataframe,_ = Load_From_pyqum(jobid).load()
+        dataframe = Load_From_pyqum(jobid).load()
         self.select_power = PowerDepend(dataframe).do_analysis()
-    def fluxdepend(self, f_bare):
-        jobid = Quest_command.fluxdepend()
+        print(self.select_power)
+    def fluxdepend(self,cavity_num, f_bare):
+        jobid = Quest_command(self.sparam).fluxdepend(select_freq=self.cavity_list[cavity_num],select_powa=self.select_power,add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["FluxDepend"] = jobid
-        dataframe,_ = Load_From_pyqum(jobid).load()
+        dataframe = Load_From_pyqum(jobid).load()
         self.wave = FluxDepend(dataframe).do_analysis(f_bare)
-    def qubitsearch(self):
-        jobid = Quest_command.qubitsearch()
+        print(self.wave)
+    def qubitsearch(self,cavity_num):
+        jobid = Quest_command(self.sparam).qubitsearch(select_freq=self.cavity_list[cavity_num],select_flux=self.wave["offset"],add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["QubitSearch"] = jobid
-        dataframe,_ = Load_From_pyqum(jobid).load()
+        dataframe = Load_From_pyqum(jobid).load()
         self.qubit = Db_Scan(dataframe).do_analysis()
+        print(self.qubit)
+
+def save_class(item,path = "save.pickle"):
+    with open(path, 'wb') as f:
+        dump(item, f)
+def load_class(path = "save.pickle"):
+    with open(path, 'rb') as f:
+        item = load(f)
+    return item
+                                                                                         
