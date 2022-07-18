@@ -12,6 +12,7 @@ by 朱宗彥, 吳岱家
 
 ## How to use
 
+You should change sqlite path at `code/LoadData_lab.py`  in `def jobid_search_pyqum(id)`
 
 You can import the  `AutoScan1Q_classfile.py` , and call the class `AutoScan1Q`
 
