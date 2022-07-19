@@ -224,7 +224,7 @@ class QubitFreq_Scan:
             'Substrate':self.sub
         }
       
-def char_fresp_new(sparam,freq,powa,flux,comment = "By bot"):
+def char_fresp_new(sparam,freq,powa,flux,dcsweepch = "1",comment = "By bot"):
     # Check user's current queue status:
     if session['run_clearance']:
         print(comment)
@@ -235,15 +235,15 @@ def char_fresp_new(sparam,freq,powa,flux,comment = "By bot"):
         powa = powa    #Power (dBm)
         fluxbias = flux   #Flux-Bias (V/A)
         comment = comment.replace("\"","") #comment
-        PERIMETER = {"dcsweepch":"1", "z-idle":{}, "sweep-config":{"sweeprate":0.0001,"pulsewidth":1001e-3,"current":0}} # DC=YOKO
+        PERIMETER = {"dcsweepch":dcsweepch, "z-idle":{}, "sweep-config":{"sweeprate":0.0001,"pulsewidth":1001e-3,"current":0}} # DC=YOKO
         CORDER = {'Flux-Bias':fluxbias, 'S-Parameter':sparam, 'IF-Bandwidth':ifb, 'Power':powa, 'Frequency':freq}
         print(CORDER)
         # Start Running:
         TOKEN = 'TOKEN(%s)%s' %(session['user_name'],random())
         Run_fresp[TOKEN] = F_Response(session['people'], corder=CORDER, comment=dumps(comment, separators=(',', ':')), tag='', dayindex=wday, perimeter=dumps(PERIMETER, separators=(',', ':')))
-        return Run_cwsweep[TOKEN].job_id
+        return Run_cwsweep[TOKEN].jobid_analysis
     else: return show()
-def char_cwsweep_new(sparam,freq,powa,flux,comment = "By bot"):
+def char_cwsweep_new(sparam,freq,powa,flux,dcsweepch = "1",comment = "By bot"):
     # Check user's current queue status:
     if session['run_clearance']:
         print(comment)
@@ -256,14 +256,14 @@ def char_cwsweep_new(sparam,freq,powa,flux,comment = "By bot"):
         xyfreq = "OPT,"
         xypowa = "OPT,"
         comment = comment.replace("\"","")
-        PERIMETER = {"dcsweepch":"1", "z-idle":{}, 'sg-locked': {}, "sweep-config":{"sweeprate":0.0001,"pulsewidth":1001e-3,"current":0}} # DC=YOKO
+        PERIMETER = {"dcsweepch":dcsweepch, "z-idle":{}, 'sg-locked': {}, "sweep-config":{"sweeprate":0.0001,"pulsewidth":1001e-3,"current":0}} # DC=YOKO
         CORDER = {'Flux-Bias':fluxbias, 'XY-Frequency':xyfreq, 'XY-Power':xypowa, 'S-Parameter':sparam, 'IF-Bandwidth':ifb, 'Frequency':freq, 'Power':powa}
         print(CORDER)
         # Start Running:
         TOKEN = 'TOKEN(%s)%s' %(session['user_name'],random())
         Run_cwsweep[TOKEN] = CW_Sweep(session['people'], corder=CORDER, comment=comment, tag='', dayindex=wday, perimeter=PERIMETER)
 
-        return Run_cwsweep[TOKEN].job_id
+        return Run_cwsweep[TOKEN].jobid_analysis
     else: return show()
 class Quest_command:
     def __init__(self,sparam="S21,"):
@@ -283,25 +283,26 @@ class Quest_command:
                 raise
         else: pass
     
-    def cavitysearch(self,add_comment=""):
-        jobid = char_fresp_new(sparam=self.sparam,freq = "5 to 9 *3000",powa = "0",flux = "OPT,",comment = "By bot - step1 cavitysearch\n"+add_comment)
+    def cavitysearch(self,dcsweepch,add_comment=""):
+        jobid = char_fresp_new(sparam=self.sparam,freq = "5 to 9 *3000",powa = "0",flux = "OPT,",dcsweepch = "1",comment = "By bot - step1 cavitysearch\n"+add_comment)
         return jobid
     def powerdepend(self,select_freq,add_comment=""):
-        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = "-50 to 10 * 13",flux = "0",comment = "By bot - step2 power dependent\n"+add_comment)
+        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = "-50 to 10 * 13",flux = "0",dcsweepch = "1",comment = "By bot - step2 power dependent\n"+add_comment)
         return jobid
     def fluxdepend(self,select_freq,select_powa,add_comment=""):
-        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = select_powa,flux = "-300e-6 to 300e-6 * 20",comment = "By bot - step3 flux dependent\n"+add_comment)
+        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = select_powa,flux = "-300e-6 to 300e-6 * 20",dcsweepch = "1",comment = "By bot - step3 flux dependent\n"+add_comment)
         return jobid
     def qubitsearch(self,select_freq,select_flux,add_comment=""):
-        jobid = char_cwsweep_new(sparam=self.sparam,freq = select_freq,flux = select_flux,powa = "-10 to 10 *4 ",comment = "By bot - step4 qubit search\n"+add_comment)
+        jobid = char_cwsweep_new(sparam=self.sparam,freq = select_freq,flux = select_flux,powa = "-10 to 10 *4 ",dcsweepch = "1",comment = "By bot - step4 qubit search\n"+add_comment)
         return jobid
 
 
 
 class AutoScan1Q:
-    def __init__(self,numCPW,sparam="S21,"):
+    def __init__(self,numCPW,sparam="S21,",dcsweepch = "1"):
         self.jobid_dict = {"CavitySearch":0,"PowerDepend":0,"FluxDepend":0,"QubitSearch":0}
         self.sparam = sparam
+        self.dcsweepch = dcsweepch
         try:
             self.numCPW = int(numCPW)
         except:
@@ -314,19 +315,19 @@ class AutoScan1Q:
         self.cavity_list = CavitySearch(dataframe).do_analysis(numCPW)
         print(self.cavity_list)
     def powerdepend(self,cavity_num):
-        jobid = Quest_command(self.sparam).powerdepend(select_freq=self.cavity_list[cavity_num],add_comment="with Cavity"+str(cavity_num))
+        jobid = Quest_command(self.sparam).powerdepend(select_freq=self.cavity_list[cavity_num],dcsweepch = self.dcsweepch,add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["PowerDepend"] = jobid
         dataframe = Load_From_pyqum(jobid).load()
         self.select_power = PowerDepend(dataframe).do_analysis()
         print(self.select_power)
     def fluxdepend(self,cavity_num, f_bare):
-        jobid = Quest_command(self.sparam).fluxdepend(select_freq=self.cavity_list[cavity_num],select_powa=self.select_power,add_comment="with Cavity"+str(cavity_num))
+        jobid = Quest_command(self.sparam).fluxdepend(select_freq=self.cavity_list[cavity_num],select_powa=self.select_power,dcsweepch = self.dcsweepch,add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["FluxDepend"] = jobid
         dataframe = Load_From_pyqum(jobid).load()
         self.wave = FluxDepend(dataframe).do_analysis(f_bare)
         print(self.wave)
     def qubitsearch(self,cavity_num):
-        jobid = Quest_command(self.sparam).qubitsearch(select_freq=self.cavity_list[cavity_num],select_flux=self.wave["offset"],add_comment="with Cavity"+str(cavity_num))
+        jobid = Quest_command(self.sparam).qubitsearch(select_freq=self.cavity_list[cavity_num],select_flux=self.wave["offset"],dcsweepch = self.dcsweepch,add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["QubitSearch"] = jobid
         dataframe = Load_From_pyqum(jobid).load()
         self.qubit = Db_Scan(dataframe).do_analysis()
