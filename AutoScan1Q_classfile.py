@@ -286,7 +286,7 @@ class Quest_command:
         else: pass
     
     def cavitysearch(self,dcsweepch,add_comment=""):
-        jobid = char_fresp_new(sparam=self.sparam,freq = "5 to 9 *3000",powa = "0",flux = "OPT,",dcsweepch = "1",comment = "By bot - step1 cavitysearch\n"+add_comment)
+        jobid = char_fresp_new(sparam=self.sparam,freq = "3 to 9 *3000",powa = "0",flux = "OPT,",dcsweepch = "1",comment = "By bot - step1 cavitysearch\n"+add_comment)
         return jobid
     def powerdepend(self,select_freq,add_comment=""):
         jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = "-50 to 10 * 13",flux = "0",dcsweepch = "1",comment = "By bot - step2 power dependent\n"+add_comment)
@@ -301,7 +301,7 @@ class Quest_command:
 
 
 class AutoScan1Q:
-    def __init__(self,numCPW,sparam="S21,",dcsweepch = "1"):
+    def __init__(self,numCPW="3",sparam="S21,",dcsweepch = "1"):
         self.jobid_dict = {"CavitySearch":0,"PowerDepend":0,"FluxDepend":0,"QubitSearch":0}
         self.sparam = sparam
         self.dcsweepch = dcsweepch
@@ -346,7 +346,7 @@ def load_class(path = "save.pickle"):
 
 
 # if __name__ == "__main__":
-#     routine = AutoScan1Q()
+#     routine = AutoScan1Q(numCPW = "3",sparam="S21,",dcsweepch = "1")
 #     routine.cavitysearch()
 #     print(routine.cavity_list)
 #     print(routine.total_cavity_len)

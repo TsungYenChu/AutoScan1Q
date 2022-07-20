@@ -16,9 +16,9 @@ You should change sqlite path at `code/LoadData_lab.py`  in `def jobid_search_py
 
 You can import the  `AutoScan1Q_classfile.py` , and call the class `AutoScan1Q`
 
-```
+```python
 class AutoScan1Q:
-    def __init__(self,numCPW,sparam):
+    def __init__(self,numCPW,sparam,dcsweepch):
         self.numCPW = int(numCPW)
         self.jobid_dict = {"CavitySearch":0,"PowerDepend":0,"FluxDepend":0,"QubitSearch":0}
         self.sparam = sparam
@@ -48,13 +48,40 @@ Step by step to do the whole measurement (cavitysearch > powerdepend > fluxdepen
 
 
 
-**First of all**
+### Step 0. Initial your machine parameter
 
+```python
+routine = AutoScan1Q(numCPW = 3) #sparam initial is "S21,", dcsweepch initial is "1"
 ```
-def __init__(self,numCPW,sparam):
+
+##### **First of all**
+
+```python
+def __init__(self,numCPW,sparam,dcsweepch):
 ```
 
 We need to define the `numCPW` which means the number of CPW in original chip design, we also can pass it if you don't have.
 
 And `sparam` is meaning the measurement way like "S21," or "S43,"
 
+`dcsweepch` is meaning the signal port of DC-sweep channel.
+
+### Step 1. Cavity Search
+
+```python
+routine.cavitysearch()
+```
+
+Check the bare cavity frequency in 3 to 9 Ghz (3000points)
+
+### Step 2. PowerDepend + FluxDepend + Qubitsearch
+
+```python
+for i in range(routine.total_cavity_len):
+         routine.powerdepend(i)
+         f_bare = mean(routine.cavity_list[str(i)])
+         routine.fluxdepend(i,f_bare)
+         routine.qubitsearch(i)
+```
+
+Because this section need to use cavity one by one, we call the "for loop" to do the analysis step by step.
