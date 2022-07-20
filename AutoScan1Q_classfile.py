@@ -289,13 +289,16 @@ class Quest_command:
         jobid = char_fresp_new(sparam=self.sparam,freq = "3 to 9 *3000",powa = "0",flux = "OPT,",dcsweepch = "1",comment = "By bot - step1 cavitysearch\n"+add_comment)
         return jobid
     def powerdepend(self,select_freq,add_comment=""):
-        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = "-50 to 10 * 13",flux = "0",dcsweepch = "1",comment = "By bot - step2 power dependent\n"+add_comment)
+        freq_command = "%d to %d *200"%select_freq[0],select_freq[1]
+        jobid = char_fresp_new(sparam=self.sparam,freq=freq_command,powa = "-50 to 10 * 13",flux = "0",dcsweepch = "1",comment = "By bot - step2 power dependent\n"+add_comment)
         return jobid
     def fluxdepend(self,select_freq,select_powa,add_comment=""):
-        jobid = char_fresp_new(sparam=self.sparam,freq=select_freq,powa = select_powa,flux = "-300e-6 to 300e-6 * 20",dcsweepch = "1",comment = "By bot - step3 flux dependent\n"+add_comment)
+        freq_command = "%d to %d *200"%select_freq[0],select_freq[1]
+        jobid = char_fresp_new(sparam=self.sparam,freq=freq_command,powa = select_powa,flux = "-300e-6 to 300e-6 * 20",dcsweepch = "1",comment = "By bot - step3 flux dependent\n"+add_comment)
         return jobid
     def qubitsearch(self,select_freq,select_flux,add_comment=""):
-        jobid = char_cwsweep_new(sparam=self.sparam,freq = select_freq,flux = select_flux,powa = "-10 to 10 *4 ",dcsweepch = "1",comment = "By bot - step4 qubit search\n"+add_comment)
+        freq_command = "%d to %d *200"%select_freq[0],select_freq[1]
+        jobid = char_cwsweep_new(sparam=self.sparam,freq = freq_command,flux = select_flux,powa = "-10 to 10 *4 ",dcsweepch = "1",comment = "By bot - step4 qubit search\n"+add_comment)
         return jobid
 
 
