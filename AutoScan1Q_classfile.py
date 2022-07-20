@@ -1,25 +1,29 @@
+import sys
+sys.path.append('./code')
+
 from colorama import Fore, Back
 from flask import session
 from pyqum import get_db, close_db
 from json import dumps
 #---------------load package of load_data---------------
-from code.LoadData_lab import jobid_search_pyqum, pyqum_load_data
+from LoadData_lab import jobid_search_pyqum, pyqum_load_data
 #---------------load package of cavity search---------------
-from code.CavitySearch import make_amp,make_pha,input_process,output_process,true_alt_info,find_best_ans,db_datamaker,Find_eps,dbscan,predict_dataset,compa_gru_db
+from CavitySearch import make_amp,make_pha,input_process,output_process,true_alt_info,find_best_ans,db_datamaker,Find_eps,dbscan,predict_dataset,compa_gru_db
 from numpy import array,vstack, hstack
 from pandas import Series
 from keras.models import load_model
-from code.QubitFrequency import colect_cluster,cal_nopecenter,cal_distance,denoise,check_overpower,find_farest,cal_Ec_GHz,freq2idx
+from QubitFrequency import colect_cluster,cal_nopecenter,cal_distance,denoise,check_overpower,find_farest,cal_Ec_GHz,freq2idx
 #---------------load package of power dependent---------------
 from sklearn.cluster import KMeans
 from numpy import median
-from code.PowerDepend import outlier_detect, cloc
+from PowerDepend import outlier_detect, cloc
 #---------------load package of flux dependent---------------
-from code.FluxDepend import flux_load_data, fit_sin
+from FluxDepend import flux_load_data, fit_sin
 #---------------save jobid list in pickle---------------
 from pickle import dump,load
 #---------------process---------------
 from numpy import mean
+
 
 class Load_From_pyqum:
     def __init__(self, jobid):
@@ -150,7 +154,7 @@ class FluxDepend:
     #         # plt.ylim(self.valid['fr'].min()-.20,self.valid['fr'].max()+.20)
     #         plt.legend()
     #         plt.show()
-        return {"f_dress":float(f_dress/1000),"f_bare":float(f_bare/1000),"f_diff":float((f_dress-f_bare)/1000,"offset":float(offset),"period":float(period)}
+        return {"f_dress":float(f_dress/1000),"f_bare":float(f_bare/1000),"f_diff":float((f_dress-f_bare)/1000),"offset":float(offset),"period":float(period)}
     
 class QubitFreq_Scan:
     def __init__(self,dataframe):#,Ec,status,area_Maxratio,density
@@ -207,7 +211,7 @@ class QubitFreq_Scan:
                 #calculate Ec based on farest
                 self.fq, self.Ec, self.status, self.target_freq = cal_Ec_GHz(denoised_freq,self.sub,self.freq)
             else:
-            self.fq, self.Ec, self.status, self.target_freq = 0, 0, 0, []
+                self.fq, self.Ec, self.status, self.target_freq = 0, 0, 0, []
         else:
             self.fq, self.Ec, self.status, self.target_freq = 0, 0, 0, []
 
@@ -314,7 +318,7 @@ class AutoScan1Q:
             pass
         
     def cavitysearch(self):
-        jobid = Quest_command(self.sparam).cavitysearch()
+        jobid = Quest_command(self.sparam).cavitysearch(self.dcsweepch)
         self.jobid_dict["CavitySearch"] = jobid
         dataframe = Load_From_pyqum(jobid).load()
         self.cavity_list = CavitySearch(dataframe).do_analysis(numCPW)
@@ -348,16 +352,16 @@ def load_class(path = "save.pickle"):
     return item
 
 
-# if __name__ == "__main__":
-#     routine = AutoScan1Q(numCPW = "3",sparam="S21,",dcsweepch = "1")
-#     routine.cavitysearch()
-#     print(routine.cavity_list)
-#     print(routine.total_cavity_len)
-#     for i in range(routine.total_cavity_len):
-#         routine.powerdepend(i)
-#         f_bare = mean(routine.cavity_list[str(i)])
-#         routine.fluxdepend(i,f_bare)
-#         routine.qubitsearch(i)
-#     # id = int(input("id? : "))
-#     # pyqum_path,task = jobid_search_pyqum(id)
-#     # amp_data,jobid  = pyqum_load_data(pyqum_path)
+if __name__ == "__main__":
+    routine = AutoScan1Q(numCPW = "3",sparam="S21,",dcsweepch = "1")
+    routine.cavitysearch()
+    print(routine.cavity_list)
+    print(routine.total_cavity_len)
+    for i in range(routine.total_cavity_len):
+        routine.powerdepend(i)
+        f_bare = mean(routine.cavity_list[str(i)])
+        routine.fluxdepend(i,f_bare)
+        routine.qubitsearch(i)
+    # id = int(input("id? : "))
+    # pyqum_path,task = jobid_search_pyqum(id)
+    # amp_data,jobid  = pyqum_load_data(pyqum_path)
