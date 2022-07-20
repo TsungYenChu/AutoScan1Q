@@ -18,6 +18,8 @@ from code.PowerDepend import outlier_detect, cloc
 from code.FluxDepend import flux_load_data, fit_sin
 #---------------save jobid list in pickle---------------
 from pickle import dump,load
+#---------------process---------------
+from numpy import mean
 
 class Load_From_pyqum:
     def __init__(self, jobid):
@@ -314,6 +316,7 @@ class AutoScan1Q:
         dataframe = Load_From_pyqum(jobid).load()
         self.cavity_list = CavitySearch(dataframe).do_analysis(numCPW)
         print(self.cavity_list)
+        self.total_cavity_len = len(self.cavity_list)
     def powerdepend(self,cavity_num):
         jobid = Quest_command(self.sparam).powerdepend(select_freq=self.cavity_list[cavity_num],dcsweepch = self.dcsweepch,add_comment="with Cavity"+str(cavity_num))
         self.jobid_dict["PowerDepend"] = jobid
@@ -340,4 +343,18 @@ def load_class(path = "save.pickle"):
     with open(path, 'rb') as f:
         item = load(f)
     return item
-                                                                                         
+
+
+# if __name__ == "__main__":
+#     routine = AutoScan1Q()
+#     routine.cavitysearch()
+#     print(routine.cavity_list)
+#     print(routine.total_cavity_len)
+#     for i in range(routine.total_cavity_len):
+#         routine.powerdepend(i)
+#         f_bare = mean(routine.cavity_list[str(i)])
+#         routine.fluxdepend(i,f_bare)
+#         routine.qubitsearch(i)
+#     # id = int(input("id? : "))
+#     # pyqum_path,task = jobid_search_pyqum(id)
+#     # amp_data,jobid  = pyqum_load_data(pyqum_path)
