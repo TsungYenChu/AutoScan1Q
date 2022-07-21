@@ -671,7 +671,7 @@ def predict_dataset(label_db,freq):
   b = sorted(b)
 
 
-  p2p = (freq[-1]-freq[0])/freq.shape[0]
+  p2p = (freq.max()-freq.min())/freq.shape[0]
 
   dataset = [] # dataset=[[freq,...],[freq,...],......]
   while len(b) != 0:
@@ -696,7 +696,7 @@ def predict_dataset(label_db,freq):
     i.sort()
     left_bound = i[0]-5*p2p  
     right_bound = i[0]+5*p2p
-    if left_bound > freq[0] and right_bound < freq[-1]:   # if the freq near the freq boundary it should be a noise
+    if left_bound > freq[0] and right_bound < freq.max():   # if the freq near the freq boundary it should be a noise
         after_output_process_array.append([n/10,left_bound,right_bound])
         n+=1
   
@@ -815,8 +815,8 @@ class CavitySearch():
         self.fig = pd.DataFrame(pd.concat([pd.Series(self.freq),pd.Series(self.amplitude),pd.Series(self.phase)],axis=1))
 
         # GRU part
-        AMP = load_model('./cavity_serch/model/GRU_AMP_Accuracy: 96.63%.h5')
-        PHA = load_model('./cavity_serch/model/GRU_PHA_Accuracy: 95.01%.h5')
+        AMP = load_model('../model/GRU_AMP_Accuracy_ 96.63_.h5')
+        PHA = load_model('../model/GRU_PHA_Accuracy_ 95.01_.h5')
 
         amp, pha, comparison = input_process(self.fig)      # frequency,amplitude,phase; comparison[no.][0] for freq start, end for comparison[no.][1] 
         self.fig.columns = ['<b>frequency(GHz)</b>','Amplitude','UPhase']

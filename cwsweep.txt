@@ -1,0 +1,4 @@
+freq:g(40)**2/ki(MHz)   +-1GHz
+freq limit 2~12GHz
+
+xy power -20
